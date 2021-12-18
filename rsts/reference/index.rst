@@ -7,7 +7,7 @@ API Reference
 .. panels::
    :header: text-center
 
-   .. link-button:: https://flytectl.readthedocs.io
+   .. link-button:: http://localhost:63343/flytectl/docs/build/html/index.html
       :type: url
       :text: FlyteCTL
       :classes: btn-block stretched-link
@@ -57,7 +57,7 @@ API Reference
    :name: apitoc
    :hidden:
 
-   FlyteCTL <https://flytectl.readthedocs.io>
+   FlyteCTL <http://localhost:63343/flytectl/docs/build/html/index.html>
    FlyteIDL <https://flyteidl.readthedocs.io>
    Flytekit Python <https://flytekit.readthedocs.io>
    Flytekit Java <https://github.com/spotify/flytekit-java>
