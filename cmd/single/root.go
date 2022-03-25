@@ -21,12 +21,12 @@ var (
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "flyte",
-	Short: "Flyte native scheduler to run cron and fixed rate scheduled workflows",
+	Use:   "Flyte",
+	Short: "Start Flyte cluster locally",
 	Long: `
-Use the run subcommand which will start the scheduler by connecting to DB containing schedules
+Use the run subcommand which will start the Flyte cluster by connecting to DB containing schedules
 
-    flytescheduler run --config  flyteadmin_config.yaml  --admin.endpoint dns:///localhost:8089 --admin.insecure
+    flyte start --config  flyte_config.yaml
 `,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		return initConfig(cmd.Flags())
