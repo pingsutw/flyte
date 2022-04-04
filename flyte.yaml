@@ -6,6 +6,8 @@ propeller:
   rawoutput-prefix: "s3://my-s3-bucket/test/"
   kube-config: "/etc/rancher/k3s/k3s.yaml"
   create-flyteworkflow-crd: true
+webhook:
+  metricsBindAddress: :8081
 tasks:
   task-plugins:
     enabled-plugins:

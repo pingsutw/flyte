@@ -2,7 +2,12 @@ package single
 
 import (
 	"context"
+	"github.com/flyteorg/flyteadmin/pkg/common"
 	"github.com/flyteorg/flyteadmin/plugins"
+	adminScheduler "github.com/flyteorg/flyteadmin/scheduler"
+	"github.com/flyteorg/flytestdlib/contextutils"
+	"github.com/flyteorg/flytestdlib/promutils/labeled"
+	"github.com/flyteorg/flytestdlib/storage"
 
 	datacatalogConfig "github.com/flyteorg/datacatalog/pkg/config"
 	datacatalogRepo "github.com/flyteorg/datacatalog/pkg/repositories"
@@ -10,11 +15,13 @@ import (
 	"github.com/flyteorg/flyteadmin/pkg/clusterresource"
 	"github.com/flyteorg/flyteadmin/pkg/runtime"
 	adminServer "github.com/flyteorg/flyteadmin/pkg/server"
-	adminScheduler "github.com/flyteorg/flyteadmin/scheduler"
 	_ "github.com/flyteorg/flyteplugins/go/tasks/plugins/array/k8s"
 	_ "github.com/flyteorg/flyteplugins/go/tasks/plugins/k8s/pod"
 	propellerEntrypoint "github.com/flyteorg/flytepropeller/pkg/controller"
 	propellerConfig "github.com/flyteorg/flytepropeller/pkg/controller/config"
+	"github.com/flyteorg/flytepropeller/pkg/signals"
+	"github.com/flyteorg/flytepropeller/pkg/webhook"
+	webhookConfig "github.com/flyteorg/flytepropeller/pkg/webhook/config"
 	"github.com/flyteorg/flytestdlib/logger"
 	"github.com/flyteorg/flytestdlib/promutils"
 	_ "github.com/golang/glog"
@@ -22,6 +29,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	_ "gorm.io/driver/postgres" // Required to import database driver.
 )
+
+const defaultNamespace = "all"
 
 func startDataCatalog(ctx context.Context) error {
 	if err := datacatalogRepo.Migrate(ctx); err != nil {
@@ -70,7 +79,11 @@ func startAdmin(ctx context.Context) error {
 }
 
 func startPropeller(ctx context.Context) error {
-	return propellerEntrypoint.StartController(ctx, propellerConfig.GetConfig(), "all")
+	return propellerEntrypoint.StartController(ctx, propellerConfig.GetConfig(), defaultNamespace)
+}
+
+func startWebhook(ctx context.Context) error {
+	return webhook.Run(signals.SetupSignalHandler(ctx), propellerConfig.GetConfig(), webhookConfig.GetConfig(), defaultNamespace)
 }
 
 var startCmd = &cobra.Command{
@@ -89,10 +102,18 @@ var startCmd = &cobra.Command{
 		})
 
 		g.Go(func() error {
-			// labeled.SetMetricKeys(storage.FailureTypeLabel)
 			err := startPropeller(childCtx)
 			if err != nil {
 				logger.Errorf(childCtx, "Failed to start Propeller, err: %v", err)
+				return err
+			}
+			return nil
+		})
+
+		g.Go(func() error {
+			err := startWebhook(childCtx)
+			if err != nil {
+				logger.Errorf(childCtx, "Failed to start webhook, err: %v", err)
 				return err
 			}
 			return nil
@@ -114,8 +135,7 @@ var startCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(startCmd)
 	// Set Keys
-	// TODO: Do we really need this? I got the error when setting metric keys. "panic: cannot set metric keys more than once"
-	//labeled.SetMetricKeys(contextutils.AppNameKey, contextutils.ProjectKey, contextutils.DomainKey,
-	//	contextutils.ExecIDKey, contextutils.WorkflowIDKey, contextutils.NodeIDKey, contextutils.TaskIDKey,
-	//	contextutils.TaskTypeKey, common.RuntimeTypeKey, common.RuntimeVersionKey)
+	labeled.SetMetricKeys(contextutils.AppNameKey, contextutils.ProjectKey, contextutils.DomainKey,
+		contextutils.ExecIDKey, contextutils.WorkflowIDKey, contextutils.NodeIDKey, contextutils.TaskIDKey,
+		contextutils.TaskTypeKey, common.RuntimeTypeKey, common.RuntimeVersionKey, storage.FailureTypeLabel)
 }
