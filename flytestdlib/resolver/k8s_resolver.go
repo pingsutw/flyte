@@ -133,7 +133,7 @@ func (k *kResolver) Close() {
 	logger.Infof(k.ctx, "k8s resolver: closed")
 }
 
-func (k *kResolver) resolve(e *v1.Endpoints) {
+func (k *kResolver) resolve(e *v1.Endpoints) { //nolint:staticcheck // EndpointSlice migration needs a resolver behavior change.
 	var newAddrs []resolver.Address
 	for _, subset := range e.Subsets {
 		port := k.target.port
@@ -187,7 +187,7 @@ func (k *kResolver) run() {
 			if event.Object == nil {
 				continue
 			}
-			k.resolve(event.Object.(*v1.Endpoints))
+			k.resolve(event.Object.(*v1.Endpoints)) //nolint:staticcheck // EndpointSlice migration needs a resolver behavior change.
 		}
 	}
 }
